@@ -11,6 +11,31 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addAccountBalance = `-- name: AddAccountBalance :one
+UPDATE accounts
+SET balance = balance + $1
+WHERE id = $2
+RETURNING id, owner, balance, currency, created_at
+`
+
+type AddAccountBalanceParams struct {
+	Amount    pgtype.Numeric
+	AccountID int64
+}
+
+func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (Account, error) {
+	row := q.db.QueryRow(ctx, addAccountBalance, arg.Amount, arg.AccountID)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createTransfer = `-- name: CreateTransfer :one
 INSERT INTO transfers (
   from_account_id, to_account_id, amount
