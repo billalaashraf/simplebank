@@ -2,24 +2,20 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-
-	"github.com/billalaashraf/simplebank/util"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Store provides all functions to execute db queries and transactions
 type Store struct {
 	*Queries
-	db *pgxpool.Pool
+	db *sql.DB
 }
 
 type TransferTxParams struct {
-	FromAccountID int64          `json:"from_account_id"`
-	ToAccountID   int64          `json:"to_account_id"`
-	Amount        pgtype.Numeric `json:"amount"`
+	FromAccountID int64 `json:"from_account_id"`
+	ToAccountID   int64 `json:"to_account_id"`
+	Amount        int64 `json:"amount"`
 }
 
 type TransferTxResult struct {
@@ -30,7 +26,7 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
-func NewStore(db *pgxpool.Pool) *Store {
+func NewStore(db *sql.DB) *Store {
 	return &Store{
 		db:      db,
 		Queries: New(db),
@@ -39,20 +35,19 @@ func NewStore(db *pgxpool.Pool) *Store {
 
 // executeTranscation executres a function within a database transaction
 func (store *Store) executeTransaction(ctx context.Context, fn func(*Queries) error) error {
-	options := pgx.TxOptions{}
-	transaction, err := store.db.BeginTx(ctx, options)
+	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	query := store.WithTx(transaction)
-	err = fn(query)
+	q := New(tx)
+	err = fn(q)
 	if err != nil {
-		if rollbackError := transaction.Rollback(ctx); rollbackError != nil {
-			return fmt.Errorf("transaction error: %v, rollback error: %v", err, rollbackError)
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
 		}
 		return err
 	}
-	return transaction.Commit(ctx)
+	return tx.Commit()
 }
 
 func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
@@ -72,7 +67,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 
 		result.FromEntry, err = query.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.FromAccountID,
-			Amount:    -arg.Amount.Int.Int64(),
+			Amount:    -arg.Amount,
 		})
 		if err != nil {
 			return err
@@ -80,16 +75,16 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 
 		result.ToEntry, err = query.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.ToAccountID,
-			Amount:    arg.Amount.Int.Int64(),
+			Amount:    arg.Amount,
 		})
 		if err != nil {
 			return err
 		}
 
 		if arg.FromAccountID < arg.ToAccountID {
-			result.FromAccount, result.ToAccount, err = addMoney(ctx, query, arg.FromAccountID, -arg.Amount.Int.Int64(), arg.ToAccountID, arg.Amount.Int.Int64())
+			result.FromAccount, result.ToAccount, err = addMoney(ctx, query, arg.FromAccountID, -arg.Amount, arg.ToAccountID, arg.Amount)
 		} else {
-			result.ToAccount, result.FromAccount, err = addMoney(ctx, query, arg.ToAccountID, arg.Amount.Int.Int64(), arg.FromAccountID, arg.Amount.Int.Int64())
+			result.ToAccount, result.FromAccount, err = addMoney(ctx, query, arg.ToAccountID, arg.Amount, arg.FromAccountID, arg.Amount)
 		}
 		if err != nil {
 			return err
@@ -110,14 +105,14 @@ func addMoney(
 
 	account1, err = queries.AddAccountBalance(ctx, AddAccountBalanceParams{
 		AccountID: accountID1,
-		Amount:    util.FromIntToPgNumeric(amount1),
+		Amount:    amount1,
 	})
 	if err != nil {
 		return
 	}
 	account2, err = queries.AddAccountBalance(ctx, AddAccountBalanceParams{
 		AccountID: accountID2,
-		Amount:    util.FromIntToPgNumeric(amount2),
+		Amount:    amount2,
 	})
 	return
 }

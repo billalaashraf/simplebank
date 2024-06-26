@@ -8,10 +8,11 @@ import (
 	"github.com/billalaashraf/simplebank/util"
 	"github.com/stretchr/testify/require"
 )
+
 func createRandomAccount(t *testing.T) Account {
 	arg := CreateAccountParams{
 		Owner:    util.RandomOwner(),
-		Balance:   util.RandomMoney(0,1000),
+		Balance:  util.RandomMoney(0, 1000),
 		Currency: util.RandomCurrency(),
 	}
 
@@ -25,7 +26,7 @@ func createRandomAccount(t *testing.T) Account {
 
 	require.NotZero(t, account.ID)
 	require.NotZero(t, account.CreatedAt)
-	
+
 	return account
 }
 
@@ -45,7 +46,7 @@ func TestGetAccount(t *testing.T) {
 	require.Equal(t, account1.Balance, account2.Balance)
 	require.Equal(t, account1.Currency, account2.Currency)
 
-	require.WithinDuration(t, account1.CreatedAt.Time, account2.CreatedAt.Time, time.Second)
+	require.WithinDuration(t, account1.CreatedAt, account2.CreatedAt, time.Second)
 
 }
 
@@ -53,7 +54,7 @@ func TestUpdateAccount(t *testing.T) {
 	account1 := createRandomAccount(t)
 
 	arg := UpdateAccountParams{
-		ID: account1.ID,
+		ID:      account1.ID,
 		Balance: util.RandomMoney(0, 1000),
 	}
 
@@ -81,7 +82,7 @@ func TestDeleteAccount(t *testing.T) {
 }
 
 func TestAccounts(t *testing.T) {
-	for i :=0; i < 10; i++ {
+	for i := 0; i < 10; i++ {
 		createRandomAccount(t)
 	}
 

@@ -12,7 +12,7 @@ import (
 func createRandomEntry(t *testing.T, account Account) Entry {
 	arg := CreateEntryParams{
 		AccountID: account.ID,
-		Amount: util.RandomInt(1, 1000),
+		Amount:    util.RandomInt(1, 1000),
 	}
 
 	entry, err := testQueries.CreateEntry(context.Background(), arg)
@@ -24,12 +24,12 @@ func createRandomEntry(t *testing.T, account Account) Entry {
 	require.Equal(t, arg.Amount, entry.Amount)
 	require.NotZero(t, entry.ID)
 	require.NotZero(t, entry.CreatedAt)
-	
+
 	return entry
 }
 
 func TestCreateEntry(t *testing.T) {
-	account1 := createRandomAccount(t);
+	account1 := createRandomAccount(t)
 	createRandomEntry(t, account1)
 }
 
@@ -43,25 +43,25 @@ func TestGetEntry(t *testing.T) {
 	require.Equal(t, entry1.ID, entry2.ID)
 	require.Equal(t, entry1.AccountID, entry2.AccountID)
 	require.Equal(t, entry1.Amount, entry2.Amount)
-	require.WithinDuration(t, entry1.CreatedAt.Time, entry2.CreatedAt.Time, time.Second)
+	require.WithinDuration(t, entry1.CreatedAt, entry2.CreatedAt, time.Second)
 }
 
 func TestUpdateEntry(t *testing.T) {
 	account1 := createRandomAccount(t)
-	entry1 := createRandomEntry(t, account1);
+	entry1 := createRandomEntry(t, account1)
 
 	arg := UpdateEntryParams{
-		ID: entry1.ID,
+		ID:     entry1.ID,
 		Amount: util.RandomInt(1, 1000),
 	}
 
-	entry2, err := testQueries.UpdateEntry(context.Background(), arg);
+	entry2, err := testQueries.UpdateEntry(context.Background(), arg)
 
-	require.NoError(t, err);
-	require.NotEmpty(t, entry2);
-	require.Equal(t, entry1.ID, entry2.ID);
-	require.Equal(t, arg.Amount, entry2.Amount);
-	require.WithinDuration(t, entry1.CreatedAt.Time, entry2.CreatedAt.Time, time.Second);
+	require.NoError(t, err)
+	require.NotEmpty(t, entry2)
+	require.Equal(t, entry1.ID, entry2.ID)
+	require.Equal(t, arg.Amount, entry2.Amount)
+	require.WithinDuration(t, entry1.CreatedAt, entry2.CreatedAt, time.Second)
 }
 
 func TestListEntries(t *testing.T) {
@@ -87,6 +87,6 @@ func TestDeleteEntry(t *testing.T) {
 	account1 := createRandomAccount(t)
 	entry1 := createRandomEntry(t, account1)
 	err := testQueries.DeleteEntry(context.Background(), entry1.ID)
-	
+
 	require.NoError(t, err)
 }
