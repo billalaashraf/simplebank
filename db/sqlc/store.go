@@ -6,8 +6,14 @@ import (
 	"fmt"
 )
 
-// Store provides all functions to execute db queries and transactions
-type Store struct {
+// Store provides all functions to execute mock db queries and transactions
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
+// SQLStore provides all functions to execute real db queries and transactions
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
@@ -26,15 +32,15 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 }
 
 // executeTranscation executres a function within a database transaction
-func (store *Store) executeTransaction(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) executeTransaction(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -50,7 +56,7 @@ func (store *Store) executeTransaction(ctx context.Context, fn func(*Queries) er
 	return tx.Commit()
 }
 
-func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 	err := store.executeTransaction(ctx, func(query *Queries) error {
 		var err error
