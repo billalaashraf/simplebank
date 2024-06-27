@@ -127,7 +127,7 @@ func (server *Server) deleteAccount(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("account with id:%d was deleted successfully", request.ID),
+		"message": fmt.Sprintf("account with id: %d was deleted successfully", request.ID),
 	})
 
 }
